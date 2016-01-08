@@ -98,21 +98,34 @@ func main() {
           fmt.Printf("Failed to login: %s", err)
           os.Exit(1)
         }
+        quit := func (exitCode int)  {
+          respLogout, err := client.Get(urlRoot + "/api/auth/logout")
+          defer respLogout.Body.Close()
+          if err != nil {
+            fmt.Printf("Failed to logout: %s", err)
+            os.Exit(99)
+          }
+          os.Exit(exitCode)
+        }
+        panic := func (exitCode int, format string, a ...interface{})  {
+          if exitCode > 0 {
+            fmt.Printf(format, a...)
+            println()
+          }
+          quit(exitCode)
+        }
         if respLogin.StatusCode != 200 {
-          println("Failed to login: Wrong username/password")
-          os.Exit(1)
+          panic(1, "Failed to login: Wrong username/password")
         }
 
         respProjects, err := client.Get(urlRoot + "/api/selector/projects")
         defer respProjects.Body.Close()
         if err != nil {
-          fmt.Printf("Failed to fetch projects: %s", err)
-          os.Exit(1)
+          panic(1, "Failed to fetch projects: %s", err)
         }
         projectsBody, err := ioutil.ReadAll(respProjects.Body)
         if err != nil {
-          fmt.Printf("Failed to login: %s", err)
-          os.Exit(1)
+          panic(1, "Failed read response body: %s", err)
         }
         var projectsJson interface{}
         err = json.Unmarshal([]byte(projectsBody), &projectsJson)
@@ -124,8 +137,7 @@ func main() {
           }
         }
         if customerId == 0 {
-          println("Could not find customer:", c.String("customer"))
-          os.Exit(1)
+          panic(1, "Could not find customer: %s", c.String("customer"))
         }
 
         var projectId int
@@ -135,20 +147,17 @@ func main() {
           }
         }
         if projectId == 0 {
-          println("Could not find project:", c.String("project"))
-          os.Exit(1)
+          panic(1, "Could not find project: %s", c.String("project"))
         }
 
         respProject, err := client.Get(fmt.Sprint(urlRoot + "/api/selector/projects/", float64(projectId)))
         defer respProject.Body.Close()
         if err != nil {
-          fmt.Printf("Failed to fetch project: %s", err)
-          os.Exit(1)
+          panic(1, "Failed to fetch project: %s", err)
         }
         projectBody, err := ioutil.ReadAll(respProject.Body)
         if err != nil {
-          fmt.Printf("Failed to unmarshal json: %s", err)
-          os.Exit(1)
+          panic(1, "Failed to unmarshal json: %s", err)
         }
         var projectJson interface{}
         err = json.Unmarshal([]byte(projectBody), &projectJson)
@@ -159,8 +168,7 @@ func main() {
           }
         }
         if phaseId == 0 {
-          println("Could not find phase:", c.String("phase"))
-          os.Exit(1)
+          panic(1, "Could not find phase: %s", c.String("phase"))
         }
         var activityId int
         for _,activity := range projectJson.(map[string]interface{})["Activities"].([]interface{}) {
@@ -169,8 +177,7 @@ func main() {
           }
         }
         if activityId == 0 {
-          println("Could not find activity:", c.String("activity"))
-          os.Exit(1)
+          panic(1, "Could not find activity: %s", c.String("activity"))
         }
 
         kinds := map[string]int{
@@ -185,15 +192,13 @@ func main() {
         }
         kindId := kinds[c.String("kind")]
         if kindId == 0 {
-          println("Could not find kind:", c.String("kind"))
-          os.Exit(1)
+          panic(1, "Could not find kind: %s", c.String("kind"))
         }
 
         hours := c.Args().First()
 
         if hours == "" {
-          println("No hours")
-          os.Exit(1)
+          panic(1, "No hours")
         }
 
         respHours, err := client.PostForm(urlRoot + "/api/hours", url.Values{
@@ -206,13 +211,12 @@ func main() {
         })
         defer respHours.Body.Close()
         if err != nil {
-          fmt.Printf("Failed to submit hours: %s", err)
-          os.Exit(1)
+          panic(1, "Failed to submit hours: %s", err)
         }
         if respHours.StatusCode != 204 {
-          println("Failed to submit hours")
-          os.Exit(1)
+          panic(1, "Failed to submit hours")
         }
+        quit(0)
       },
     },
   }
