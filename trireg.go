@@ -22,22 +22,22 @@ func main() {
       Value: "https://tidsreg.trifork.com",
       EnvVar: "TRIREG_HOST",
     },
+    cli.StringFlag{
+      Name: "username",
+      Usage: "Select username",
+      EnvVar: "USER,TRIREG_USERNAME",
+    },
+    cli.StringFlag{
+      Name: "password",
+      Usage: "Select password",
+      EnvVar: "TRIREG_PASSWORD",
+    },
   }
   app.Commands = []cli.Command{
     {
       Name: "hours",
       Usage: "Register hours",
       Flags: []cli.Flag {
-        cli.StringFlag{
-          Name: "username",
-          Usage: "Select username",
-          EnvVar: "TRIREG_USERNAME",
-        },
-        cli.StringFlag{
-          Name: "password",
-          Usage: "Select password",
-          EnvVar: "TRIREG_PASSWORD",
-        },
         cli.StringFlag{
           Name: "date",
           Value: "2016-01-07",
@@ -71,7 +71,9 @@ func main() {
       },
       Action: func(c *cli.Context)  {
         urlRoot := c.GlobalString("host")
-        println("host:", urlRoot)
+        username := c.GlobalString("username")
+        password := c.GlobalString("password")
+        
         jar, err := cookiejar.New(nil)
         if err != nil {
           fmt.Printf("Failed to create cookie jar: %s", err)
@@ -79,8 +81,6 @@ func main() {
         }
         client := http.Client{Jar: jar}
 
-        username := c.String("username")
-        password := c.String("password")
         respLogin, err := client.PostForm(urlRoot + "/api/auth/login", url.Values{"username": {username}, "password": { password }})
         defer respLogin.Body.Close()
         if err != nil {
