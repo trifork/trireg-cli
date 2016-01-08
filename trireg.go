@@ -73,7 +73,7 @@ func main() {
         urlRoot := c.GlobalString("host")
         username := c.GlobalString("username")
         password := c.GlobalString("password")
-        
+
         jar, err := cookiejar.New(nil)
         if err != nil {
           fmt.Printf("Failed to create cookie jar: %s", err)
@@ -87,7 +87,10 @@ func main() {
           fmt.Printf("Failed to login: %s", err)
           os.Exit(1)
         }
-        //TODO: Check if login is successful
+        if respLogin.StatusCode != 200 {
+          println("Failed to login: Wrong username/password")
+          os.Exit(1)
+        }
 
         respProjects, err := client.Get(urlRoot + "/api/selector/projects")
         defer respProjects.Body.Close()
@@ -109,8 +112,10 @@ func main() {
             customerId = int(customer.(map[string]interface{})["Id"].(float64))
           }
         }
-
-        fmt.Println("CustomerId:", customerId)
+        if customerId == 0 {
+          println("Could not find customer:", c.String("customer"))
+          os.Exit(1)
+        }
 
         var projectId int
         for _,project := range projectsJson.(map[string]interface{})["Projects"].([]interface{}) {
@@ -118,8 +123,10 @@ func main() {
             projectId = int(project.(map[string]interface{})["Id"].(float64))
           }
         }
-        fmt.Println("ProjectId:", projectId)
-        //TODO: exit if project is null
+        if projectId == 0 {
+          println("Could not find project:", c.String("project"))
+          os.Exit(1)
+        }
 
         respProject, err := client.Get(fmt.Sprint(urlRoot + "/api/selector/projects/", float64(projectId)))
         defer respProject.Body.Close()
@@ -140,14 +147,20 @@ func main() {
             phaseId = int(phase.(map[string]interface{})["Id"].(float64))
           }
         }
-        fmt.Println("PhaseId:", phaseId)
+        if phaseId == 0 {
+          println("Could not find phase:", c.String("phase"))
+          os.Exit(1)
+        }
         var activityId int
         for _,activity := range projectJson.(map[string]interface{})["Activities"].([]interface{}) {
           if int(activity.(map[string]interface{})["ParentId"].(float64)) == phaseId && activity.(map[string]interface{})["Name"] == c.String("activity") {
             activityId = int(activity.(map[string]interface{})["Id"].(float64))
           }
         }
-        fmt.Println("ActivityId:", activityId)
+        if activityId == 0 {
+          println("Could not find activity:", c.String("activity"))
+          os.Exit(1)
+        }
 
         kinds := map[string]int{
           "Billable": 13,
@@ -159,8 +172,18 @@ func main() {
           "Voucher": 20,
           "Transport hours": 21,
         }
-        println("Kind:", kinds[c.String("kind")])
+        kindId := kinds[c.String("kind")]
+        if kindId == 0 {
+          println("Could not find kind:", c.String("kind"))
+          os.Exit(1)
+        }
+
         hours := c.Args().First()
+
+        if hours == "" {
+          println("No hours")
+          os.Exit(1)
+        }
 
         respHours, err := client.PostForm(urlRoot + "/api/hours", url.Values{
           "hours": {hours},
@@ -173,8 +196,10 @@ func main() {
           fmt.Printf("Failed to submit hours: %s", err)
           os.Exit(1)
         }
-
-        println("Add", hours, "hours to project", c.String("customer"), c.String("project"), c.String("phase"), c.String("activity"), c.String("kind"))
+        if respHours.StatusCode != 204 {
+          println("Failed to submit hours")
+          os.Exit(1)
+        }
       },
     },
   }
