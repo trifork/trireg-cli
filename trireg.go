@@ -69,6 +69,16 @@ func main() {
           Usage: "Select kind",
           EnvVar: "TRIREG_KIND,TRIREG_HOURS_KIND",
         },
+        cli.StringFlag{
+          Name: "invoice-text",
+          Usage: "Optional: Add invoice text",
+          EnvVar: "TRIREG_INVOICE_TEXT,TRIREG_HOURS_INVOICE_TEXT",
+        },
+        cli.StringFlag{
+          Name: "contact",
+          Usage: "Optional: Add contact name",
+          EnvVar: "TRIREG_CONTACT,TRIREG_HOURS_CONTACT",
+        },
       },
       Action: func(c *cli.Context)  {
         urlRoot := c.GlobalString("host")
@@ -191,6 +201,8 @@ func main() {
           "activityId": {strconv.Itoa(activityId)},
           "date": {c.String("date")},
           "kindId": {strconv.Itoa(kinds[c.String("kind")])},
+          "note": {c.String("invoice-text")},
+          "contactName": {c.String("contact")},
         })
         defer respHours.Body.Close()
         if err != nil {
