@@ -2,6 +2,7 @@ package main
 
 import (
   "os"
+  "time"
   "fmt"
   "strconv"
   "io/ioutil"
@@ -40,7 +41,7 @@ func main() {
       Flags: []cli.Flag {
         cli.StringFlag{
           Name: "date",
-          Value: "2016-01-07",
+          Value: time.Now().Format("2006-01-02"),
           Usage: "Select date, format: yyyy-mm-dd",
         },
         cli.StringFlag{
