@@ -38,7 +38,7 @@ $ trireg hours \
 Rather conveniently trireg can be configured with Environment variables
 
 ```
-export TRIREG_USERNAME=mwl
+export TRIREG_USERNAME=$USER
 export TRIREG_PASSWORD=$(cat ~/.trifork/password)
 export TRIREG_CUSTOMER="Trifork Ltd."
 export TRIREG_PROJECT="Internal time"
