@@ -16,6 +16,13 @@ func main() {
   app := cli.NewApp()
   app.Name = "Trifork timeregistration"
   app.Usage = "Report hours from your commandline"
+  app.Flags = []cli.Flag{
+    cli.StringFlag{
+      Name: "host",
+      Value: "https://tidsreg.trifork.com",
+      EnvVar: "TRIREG_HOST",
+    },
+  }
   app.Commands = []cli.Command{
     {
       Name: "hours",
@@ -63,6 +70,8 @@ func main() {
         },
       },
       Action: func(c *cli.Context)  {
+        urlRoot := c.GlobalString("host")
+        println("host:", urlRoot)
         jar, err := cookiejar.New(nil)
         if err != nil {
           fmt.Printf("Failed to create cookie jar: %s", err)
@@ -72,7 +81,7 @@ func main() {
 
         username := c.String("username")
         password := c.String("password")
-        respLogin, err := client.PostForm("https://tidsreg.trifork.com/api/auth/login", url.Values{"username": {username}, "password": { password }})
+        respLogin, err := client.PostForm(urlRoot + "/api/auth/login", url.Values{"username": {username}, "password": { password }})
         defer respLogin.Body.Close()
         if err != nil {
           fmt.Printf("Failed to login: %s", err)
@@ -80,7 +89,7 @@ func main() {
         }
         //TODO: Check if login is successful
 
-        respProjects, err := client.Get("https://tidsreg.trifork.com/api/selector/projects")
+        respProjects, err := client.Get(urlRoot + "/api/selector/projects")
         defer respProjects.Body.Close()
         if err != nil {
           fmt.Printf("Failed to fetch projects: %s", err)
@@ -112,7 +121,7 @@ func main() {
         fmt.Println("ProjectId:", projectId)
         //TODO: exit if project is null
 
-        respProject, err := client.Get(fmt.Sprint("https://tidsreg.trifork.com/api/selector/projects/", float64(projectId)))
+        respProject, err := client.Get(fmt.Sprint(urlRoot + "/api/selector/projects/", float64(projectId)))
         defer respProject.Body.Close()
         if err != nil {
           fmt.Printf("Failed to fetch project: %s", err)
@@ -153,7 +162,7 @@ func main() {
         println("Kind:", kinds[c.String("kind")])
         hours := c.Args().First()
 
-        respHours, err := client.PostForm("https://tidsreg.trifork.com/api/hours", url.Values{
+        respHours, err := client.PostForm(urlRoot + "/api/hours", url.Values{
           "hours": {hours},
           "activityId": {strconv.Itoa(activityId)},
           "date": {c.String("date")},
