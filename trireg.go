@@ -18,67 +18,23 @@ func main() {
   app.Name = "Trifork timeregistration"
   app.Usage = "Report hours from your commandline"
   app.Flags = []cli.Flag{
-    cli.StringFlag{
-      Name: "host",
-      Value: "https://tidsreg.trifork.com",
-      EnvVar: "TRIREG_HOST",
-    },
-    cli.StringFlag{
-      Name: "username",
-      Usage: "Select username",
-      EnvVar: "USER,TRIREG_USERNAME",
-    },
-    cli.StringFlag{
-      Name: "password",
-      Usage: "Select password",
-      EnvVar: "TRIREG_PASSWORD",
-    },
+    cli.StringFlag{ Name: "host", Value: "https://tidsreg.trifork.com", EnvVar: "TRIREG_HOST", },
+    cli.StringFlag{ Name: "username", Usage: "Select username", EnvVar: "USER,TRIREG_USERNAME", },
+    cli.StringFlag{ Name: "password", Usage: "Select password", EnvVar: "TRIREG_PASSWORD", },
   }
   app.Commands = []cli.Command{
     {
       Name: "hours",
       Usage: "Register hours",
       Flags: []cli.Flag {
-        cli.StringFlag{
-          Name: "date",
-          Value: time.Now().Format("2006-01-02"),
-          Usage: "Select date, format: yyyy-mm-dd",
-        },
-        cli.StringFlag{
-          Name: "customer",
-          Usage: "Select customer",
-          EnvVar: "TRIREG_CUSTOMER,TRIREG_HOURS_CUSTOMER",
-        },
-        cli.StringFlag{
-          Name: "project",
-          Usage: "Select project",
-          EnvVar: "TRIREG_PROJECT,TRIREG_HOURS_PROJECT",
-        },
-        cli.StringFlag{
-          Name: "phase",
-          Usage: "Select phase",
-          EnvVar: "TRIREG_PHASE,TRIREG_HOURS_PHASE",
-        },
-        cli.StringFlag{
-          Name: "activity",
-          Usage: "Select activity",
-          EnvVar: "TRIREG_ACTIVITY,TRIREG_HOURS_ACTIVITY",
-        },
-        cli.StringFlag{
-          Name: "kind",
-          Usage: "Select kind",
-          EnvVar: "TRIREG_KIND,TRIREG_HOURS_KIND",
-        },
-        cli.StringFlag{
-          Name: "invoice-text",
-          Usage: "Optional: Add invoice text",
-          EnvVar: "TRIREG_INVOICE_TEXT,TRIREG_HOURS_INVOICE_TEXT",
-        },
-        cli.StringFlag{
-          Name: "contact",
-          Usage: "Optional: Add contact name",
-          EnvVar: "TRIREG_CONTACT,TRIREG_HOURS_CONTACT",
-        },
+        cli.StringFlag{ Name: "date", Value: time.Now().Format("2006-01-02"), Usage: "Select date, format: yyyy-mm-dd", },
+        cli.StringFlag{ Name: "customer", Usage: "Select customer", EnvVar: "TRIREG_CUSTOMER,TRIREG_HOURS_CUSTOMER", },
+        cli.StringFlag{ Name: "project", Usage: "Select project", EnvVar: "TRIREG_PROJECT,TRIREG_HOURS_PROJECT", },
+        cli.StringFlag{ Name: "phase", Usage: "Select phase", EnvVar: "TRIREG_PHASE,TRIREG_HOURS_PHASE", },
+        cli.StringFlag{ Name: "activity", Usage: "Select activity", EnvVar: "TRIREG_ACTIVITY,TRIREG_HOURS_ACTIVITY", },
+        cli.StringFlag{ Name: "kind", Usage: "Select kind", EnvVar: "TRIREG_KIND,TRIREG_HOURS_KIND", },
+        cli.StringFlag{ Name: "invoice-text", Usage: "Optional: Add invoice text", EnvVar: "TRIREG_INVOICE_TEXT,TRIREG_HOURS_INVOICE_TEXT", },
+        cli.StringFlag{ Name: "contact", Usage: "Optional: Add contact name", EnvVar: "TRIREG_CONTACT,TRIREG_HOURS_CONTACT", },
       },
       Action: func(c *cli.Context)  {
         urlRoot := c.GlobalString("host")
