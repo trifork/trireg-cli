@@ -76,13 +76,11 @@ func main() {
 
         respProjects, err := client.Get(urlRoot + "/api/selector/projects")
         defer respProjects.Body.Close()
-        if err != nil {
-          panic(1, "Failed to fetch projects: %s", err)
-        }
+        if err != nil { panic(1, "Failed to fetch projects: %s", err) }
+
         projectsBody, err := ioutil.ReadAll(respProjects.Body)
-        if err != nil {
-          panic(1, "Failed read response body: %s", err)
-        }
+        if err != nil { panic(1, "Failed read response body: %s", err) }
+
         var projectsJson interface{}
         err = json.Unmarshal([]byte(projectsBody), &projectsJson)
 
@@ -92,9 +90,7 @@ func main() {
             customerId = int(customer.(map[string]interface{})["Id"].(float64))
           }
         }
-        if customerId == 0 {
-          panic(1, "Could not find customer: %s", c.String("customer"))
-        }
+        if customerId == 0 { panic(1, "Could not find customer: %s", c.String("customer")) }
 
         var projectId int
         for _,project := range projectsJson.(map[string]interface{})["Projects"].([]interface{}) {
@@ -108,13 +104,11 @@ func main() {
 
         respProject, err := client.Get(fmt.Sprint(urlRoot + "/api/selector/projects/", float64(projectId)))
         defer respProject.Body.Close()
-        if err != nil {
-          panic(1, "Failed to fetch project: %s", err)
-        }
+        if err != nil { panic(1, "Failed to fetch project: %s", err) }
+
         projectBody, err := ioutil.ReadAll(respProject.Body)
-        if err != nil {
-          panic(1, "Failed to unmarshal json: %s", err)
-        }
+        if err != nil { panic(1, "Failed to unmarshal json: %s", err) }
+
         var projectJson interface{}
         err = json.Unmarshal([]byte(projectBody), &projectJson)
         var phaseId int
@@ -166,9 +160,7 @@ func main() {
           "contactName": {c.String("contact")},
         })
         defer respHours.Body.Close()
-        if err != nil {
-          panic(1, "Failed to submit hours: %s", err)
-        }
+        if err != nil { panic(1, "Failed to submit hours: %s", err) }
         if respHours.StatusCode != 204 {
           panic(1, "Failed to submit hours")
         }
