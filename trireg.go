@@ -22,6 +22,7 @@ func main() {
     cli.StringFlag{ Name: "host", Value: "https://tidsreg.trifork.com", EnvVar: "TRIREG_HOST", },
     cli.StringFlag{ Name: "username", Usage: "Select username", EnvVar: "USER,TRIREG_USERNAME", },
     cli.StringFlag{ Name: "password", Usage: "Select password", EnvVar: "TRIREG_PASSWORD", },
+    cli.BoolFlag{ Name: "verbose", Usage: "Be more verbose" },
   }
   app.Commands = []cli.Command{
     {
@@ -45,6 +46,12 @@ func main() {
         if password == "" {
           fmt.Printf("Trireg password:")
           password = string(gopass.GetPasswd())
+        }
+
+        if c.GlobalBool("verbose") {
+          fmt.Printf("Registering hours with arguments:\n")
+          fmt.Printf("  host: %s\n", urlRoot)
+          fmt.Printf("  username: %s\n", username)
         }
 
         jar, err := cookiejar.New(nil)
