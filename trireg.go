@@ -11,6 +11,7 @@ import (
   "net/http/cookiejar"
   "net/url"
   "github.com/codegangsta/cli"
+  "github.com/howeyc/gopass"
 )
 
 func main() {
@@ -40,6 +41,11 @@ func main() {
         urlRoot := c.GlobalString("host")
         username := c.GlobalString("username")
         password := c.GlobalString("password")
+
+        if password == "" {
+          fmt.Printf("Trireg password:")
+          password = string(gopass.GetPasswd())
+        }
 
         jar, err := cookiejar.New(nil)
         if err != nil {
