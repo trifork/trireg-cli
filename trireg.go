@@ -18,7 +18,7 @@ func main() {
   app := cli.NewApp()
   app.Name = "Trifork timeregistration"
   app.Usage = "Report hours from your commandline"
-  app.Version = "0.3-dev"
+  app.Version = "0.3"
   app.Flags = []cli.Flag{
     cli.StringFlag{ Name: "host", Value: "https://tidsreg.trifork.com", EnvVar: "TRIREG_HOST", },
     cli.StringFlag{ Name: "username", Usage: "Select username", EnvVar: "USER,TRIREG_USERNAME", },
