@@ -24,6 +24,7 @@ func main() {
     cli.StringFlag{ Name: "username", Usage: "Select username", EnvVar: "USER,TRIREG_USERNAME", },
     cli.StringFlag{ Name: "password", Usage: "Select password", EnvVar: "TRIREG_PASSWORD", },
     cli.BoolFlag{ Name: "verbose", Usage: "Be more verbose" },
+    cli.BoolFlag{ Name: "dryrun", Usage: "Don't submit anything" },
   }
   app.Commands = []cli.Command{
     {
@@ -40,6 +41,7 @@ func main() {
         cli.StringFlag{ Name: "contact", Usage: "Optional: Add contact name", EnvVar: "TRIREG_CONTACT,TRIREG_HOURS_CONTACT", },
       },
       Action: func(c *cli.Context)  {
+        verbose := c.GlobalBool("verbose")
         urlRoot := c.GlobalString("host")
         username := c.GlobalString("username")
         password := c.GlobalString("password")
@@ -49,7 +51,7 @@ func main() {
           password = string(gopass.GetPasswd())
         }
 
-        if c.GlobalBool("verbose") {
+        if verbose {
           fmt.Printf("Registering hours with arguments:\n")
           fmt.Printf("  host: %s\n", urlRoot)
           fmt.Printf("  username: %s\n", username)
@@ -159,25 +161,45 @@ func main() {
           panic(1, "Could not find kind: %s", c.String("kind"))
         }
 
-        hours := c.Args().First()
+        submitHours := func (date string, hours string)  {
+          if hours == "" {
+            panic(1, "No hours")
+          }
 
-        if hours == "" {
-          panic(1, "No hours")
+          if verbose {
+            fmt.Printf("Submitting hours for %s: %s", date, hours)
+            println()
+          }
+
+          if c.GlobalBool("dryrun") {
+            return
+          }
+          respHours, err := client.PostForm(urlRoot + "/api/hours", url.Values{
+            "hours": {hours},
+            "activityId": {strconv.Itoa(activityId)},
+            "date": {c.String("date")},
+            "kindId": {strconv.Itoa(kinds[c.String("kind")])},
+            "note": {c.String("invoice-text")},
+            "contactName": {c.String("contact")},
+          })
+          defer respHours.Body.Close()
+          if err != nil { panic(1, "Failed to submit hours: %s", err) }
+          if respHours.StatusCode != 204 {
+            panic(1, "Failed to submit hours")
+          }
+
         }
 
-        respHours, err := client.PostForm(urlRoot + "/api/hours", url.Values{
-          "hours": {hours},
-          "activityId": {strconv.Itoa(activityId)},
-          "date": {c.String("date")},
-          "kindId": {strconv.Itoa(kinds[c.String("kind")])},
-          "note": {c.String("invoice-text")},
-          "contactName": {c.String("contact")},
-        })
-        defer respHours.Body.Close()
-        if err != nil { panic(1, "Failed to submit hours: %s", err) }
-        if respHours.StatusCode != 204 {
-          panic(1, "Failed to submit hours")
+        lastDate, dateParseErr := time.Parse("2006-01-02", c.String("date"))
+        if dateParseErr != nil {
+          panic(1, "Failed to parse date '%s'", c.String("date"))
         }
+        for i := 0; i < len(c.Args()); i++ {
+          deltaI := len(c.Args()) - i - 1
+          date := lastDate.Add(time.Hour * time.Duration(24 * deltaI * -1))
+          submitHours(date.Format("2006-01-02"), c.Args().Get(i))
+        }
+
         quit(0)
       },
     },
