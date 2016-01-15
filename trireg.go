@@ -29,7 +29,7 @@ func main() {
   app.Commands = []cli.Command{
     {
       Name: "hours",
-      Usage: "Register hours",
+      Usage: "Submit hours",
       Flags: []cli.Flag {
         cli.StringFlag{ Name: "date", Value: time.Now().Format("2006-01-02"), Usage: "Select date, format: yyyy-mm-dd", },
         cli.StringFlag{ Name: "customer", Usage: "Select customer", EnvVar: "TRIREG_CUSTOMER,TRIREG_HOURS_CUSTOMER", },
@@ -200,6 +200,186 @@ func main() {
           submitHours(date.Format("2006-01-02"), c.Args().Get(i))
         }
 
+        quit(0)
+      },
+    },
+    {
+      Name: "voucher",
+      Usage: "Submit voucher",
+      Flags: []cli.Flag {
+        cli.StringFlag{ Name: "date", Value: time.Now().Format("2006-01-02"), Usage: "Select date, format: yyyy-mm-dd", },
+        cli.StringFlag{ Name: "customer", Usage: "Select customer", EnvVar: "TRIREG_CUSTOMER,TRIREG_VOUCHER_CUSTOMER", },
+        cli.StringFlag{ Name: "project", Usage: "Select project", EnvVar: "TRIREG_PROJECT,TRIREG_VOUCHER_PROJECT", },
+        cli.StringFlag{ Name: "phase", Usage: "Select phase", EnvVar: "TRIREG_PHASE,TRIREG_VOUCHER_PHASE", },
+        cli.StringFlag{ Name: "activity", Usage: "Select activity", EnvVar: "TRIREG_ACTIVITY,TRIREG_VOUCHER_ACTIVITY", },
+        cli.StringFlag{ Name: "kind", Usage: "Select kind", EnvVar: "TRIREG_KIND,TRIREG_VOUCHER_KIND", },
+        cli.StringFlag{ Name: "invoice-text", Usage: "Optional: Add invoice text", EnvVar: "TRIREG_INVOICE_TEXT,TRIREG_VOUCHER_INVOICE_TEXT", },
+        cli.StringFlag{ Name: "contact", Usage: "Optional: Add contact name", EnvVar: "TRIREG_CONTACT,TRIREG_VOUCHER_CONTACT", },
+      },
+      Action: func(c *cli.Context)  {
+
+      },
+    },
+    {
+      Name: "list",
+      Usage: "List activities",
+      Flags: []cli.Flag {
+        cli.StringFlag{ Name: "customer", Usage: "List projects for customer", },
+        cli.StringFlag{ Name: "project", Usage: "List phases for project", },
+        cli.StringFlag{ Name: "phase", Usage: "List activities for phase", },
+        cli.StringFlag{ Name: "activity", Usage: "List kinds for activity", },
+      },
+      Action: func(c *cli.Context)  {
+        // verbose := c.GlobalBool("verbose")
+        urlRoot := c.GlobalString("host")
+        username := c.GlobalString("username")
+        password := c.GlobalString("password")
+
+        if password == "" {
+          fmt.Printf("Trireg password:")
+          password = string(gopass.GetPasswd())
+        }
+        jar, err := cookiejar.New(nil)
+        if err != nil {
+          fmt.Printf("Failed to create cookie jar: %s", err)
+          os.Exit(1)
+        }
+        client := http.Client{Jar: jar}
+
+        respLogin, err := client.PostForm(urlRoot + "/api/auth/login", url.Values{"username": {username}, "password": { password }})
+        defer respLogin.Body.Close()
+        if err != nil {
+          fmt.Printf("Failed to login: %s", err)
+          os.Exit(1)
+
+        }
+        quit := func (exitCode int)  {
+          respLogout, err := client.Get(urlRoot + "/api/auth/logout")
+          defer respLogout.Body.Close()
+          if err != nil {
+            fmt.Printf("Failed to logout: %s", err)
+            os.Exit(99)
+          }
+          os.Exit(exitCode)
+        }
+        panic := func (exitCode int, format string, a ...interface{})  {
+          if exitCode > 0 {
+            fmt.Printf(format, a...)
+            println()
+          }
+          quit(exitCode)
+        }
+        if respLogin.StatusCode != 200 {
+          panic(1, "Failed to login: Wrong username/password")
+        }
+        respProjects, err := client.Get(urlRoot + "/api/selector/projects")
+        defer respProjects.Body.Close()
+        if err != nil { panic(1, "Failed to fetch projects: %s", err) }
+
+        projectsBody, err := ioutil.ReadAll(respProjects.Body)
+        if err != nil { panic(1, "Failed read response body: %s", err) }
+
+        var projectsJson interface{}
+        err = json.Unmarshal([]byte(projectsBody), &projectsJson)
+
+        if c.String("customer") == "" {
+          println("ID\tCUSTOMER NAME")
+          for _,customer := range projectsJson.(map[string]interface{})["Customers"].([]interface{}) {
+            fmt.Printf("%v\t%s", customer.(map[string]interface{})["Id"], customer.(map[string]interface{})["Name"])
+            println()
+          }
+          quit(0)
+        }
+        var customerId int
+        for _,customer := range projectsJson.(map[string]interface{})["Customers"].([]interface{}) {
+          if customer.(map[string]interface{})["Name"] == c.String("customer") {
+            customerId = int(customer.(map[string]interface{})["Id"].(float64))
+          }
+        }
+        if customerId == 0 { panic(1, "Could not find customer: '%s'", c.String("customer")) }
+
+        if (c.String("project") == "") {
+          println("ID\tPROJECT NAME")
+          for _,project := range projectsJson.(map[string]interface{})["Projects"].([]interface{}) {
+            if int(project.(map[string]interface{})["ParentId"].(float64)) == customerId {
+              fmt.Printf("%v\t%s", project.(map[string]interface{})["Id"], project.(map[string]interface{})["Name"])
+              println()
+            }
+          }
+          quit(0)
+        }
+
+        var projectId int
+        for _,project := range projectsJson.(map[string]interface{})["Projects"].([]interface{}) {
+          if project.(map[string]interface{})["Name"] == c.String("project") {
+            projectId = int(project.(map[string]interface{})["Id"].(float64))
+          }
+        }
+        if projectId == 0 { panic(1, "Could not find project: '%s'", c.String("project")) }
+
+        respProject, err := client.Get(fmt.Sprint(urlRoot + "/api/selector/projects/", float64(projectId)))
+        defer respProject.Body.Close()
+        if err != nil { panic(1, "Failed to fetch project: %s", err) }
+
+        projectBody, err := ioutil.ReadAll(respProject.Body)
+        if err != nil { panic(1, "Failed to unmarshal json: %s", err) }
+
+        var projectJson interface{}
+        err = json.Unmarshal([]byte(projectBody), &projectJson)
+
+        if c.String("phase") == "" {
+          println("ID\tPHASE NAME")
+          for _,phase := range projectJson.(map[string]interface{})["Phases"].([]interface{}) {
+            if int(phase.(map[string]interface{})["ParentId"].(float64)) == projectId {
+              fmt.Printf("%v\t%s", phase.(map[string]interface{})["Id"], phase.(map[string]interface{})["Name"])
+              println()
+            }
+          }
+          quit(0)
+        }
+
+        var phaseId int
+        for _,phase := range projectJson.(map[string]interface{})["Phases"].([]interface{}) {
+          if phase.(map[string]interface{})["Name"] == c.String("phase") {
+            phaseId = int(phase.(map[string]interface{})["Id"].(float64))
+          }
+        }
+        if phaseId == 0 { panic(1, "Could not find phase: '%s'", c.String("phase")) }
+
+        if c.String("activity") == "" {
+          println("ID\tACTIVITY NAME")
+          for _,activity := range projectJson.(map[string]interface{})["Activities"].([]interface{}) {
+            if int(activity.(map[string]interface{})["ParentId"].(float64)) == phaseId {
+              fmt.Printf("%v\t%s", activity.(map[string]interface{})["Id"], activity.(map[string]interface{})["Name"])
+              println()
+            }
+          }
+          quit(0)
+        }
+
+        var activityId int
+        for _,activity := range projectJson.(map[string]interface{})["Activities"].([]interface{}) {
+          if activity.(map[string]interface{})["Name"] == c.String("activity") {
+            activityId = int(activity.(map[string]interface{})["Id"].(float64))
+          }
+        }
+        if activityId == 0 { panic(1, "Could not find activity: '%s'", c.String("activity")) }
+
+        kinds := map[string]int{
+          "Billable": 13,
+          "Overtime 50 %": 14,
+          "Overtime 100 %": 15,
+          "Not billable": 16,
+          "Kilometer": 17,
+          "Kilometer not Billable": 19,
+          "Voucher": 20,
+          "Transport hours": 21,
+        }
+        println("ID\tKIND NAME")
+        for kind,kindId := range kinds {
+          fmt.Printf("%v\t%s", kindId, kind)
+          println()
+        }
         quit(0)
       },
     },
